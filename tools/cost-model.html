@@ -1,0 +1,307 @@
+<style>
+  :root{
+    --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#F0F2F6; --border:#E4E8EE;
+    --ink:#171C26; --muted:#5C6675; --faint:#8B95A4;
+    --accent:#9E7420; --accent-soft:#F4ECD8;
+    --pos:#25865B; --pos-soft:#E1F1E9; --neg:#C0463F; --neg-soft:#F7E4E3;
+    --shadow:0 1px 2px rgba(20,28,44,.04),0 8px 24px rgba(20,28,44,.05);
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0E1218; --surface:#161C25; --surface-2:#1C2430; --border:#283140;
+      --ink:#E7ECF3; --muted:#8A97A8; --faint:#697585;
+      --accent:#E0B84E; --accent-soft:#2A2716;
+      --pos:#47C489; --pos-soft:#16271F; --neg:#E8756F; --neg-soft:#2A1918;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#F0F2F6; --border:#E4E8EE;
+    --ink:#171C26; --muted:#5C6675; --faint:#8B95A4;
+    --accent:#9E7420; --accent-soft:#F4ECD8;
+    --pos:#25865B; --pos-soft:#E1F1E9; --neg:#C0463F; --neg-soft:#F7E4E3;
+    --shadow:0 1px 2px rgba(20,28,44,.04),0 8px 24px rgba(20,28,44,.05);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1218; --surface:#161C25; --surface-2:#1C2430; --border:#283140;
+    --ink:#E7ECF3; --muted:#8A97A8; --faint:#697585;
+    --accent:#E0B84E; --accent-soft:#2A2716;
+    --pos:#47C489; --pos-soft:#16271F; --neg:#E8756F; --neg-soft:#2A1918;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.5;-webkit-font-smoothing:antialiased;font-size:15px}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 24px 72px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:600}
+  h1{font-size:30px;line-height:1.1;margin:.35em 0 .15em;letter-spacing:-.02em;text-wrap:balance;font-weight:680}
+  .lede{color:var(--muted);max-width:64ch;margin:0}
+  .lede code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:22px;margin-top:34px;align-items:start}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+  .card + .card{margin-top:22px}
+  .card h2{font-size:12px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);margin:0 0 16px;font-weight:600}
+  .stack{display:flex;flex-direction:column;gap:16px}
+  .ctrl{display:flex;flex-direction:column;gap:7px}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .ctrl label{font-size:13px;color:var(--muted)}
+  .ctrl label b{color:var(--ink);font-weight:600}
+  .ctrl .val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink);font-weight:600}
+  .ctrl .hint{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;
+    background:var(--surface-2);outline:none;margin:2px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;
+    border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid var(--surface)}
+  input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+  input[type=number]{font-family:var(--mono);font-variant-numeric:tabular-nums;width:96px;text-align:right;
+    background:var(--surface-2);color:var(--ink);border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:13px}
+  input[type=number]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .price-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .price-row .lab{display:flex;flex-direction:column;gap:1px}
+  .price-row .lab .k{font-size:13px}.price-row .lab .k b{font-family:var(--mono);color:var(--accent)}
+  .price-row .lab .c{font-size:10.5px;color:var(--faint);font-family:var(--mono)}
+  table{width:100%;border-collapse:collapse}
+  .tablewrap{overflow-x:auto;margin:0 -4px}
+  th,td{text-align:right;padding:11px 12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600;
+    border-bottom:1px solid var(--border)}
+  th:first-child,td:first-child{text-align:left}
+  td{border-bottom:1px solid var(--border);font-family:var(--mono);font-size:13.5px}
+  tr:last-child td{border-bottom:none}
+  .game{font-family:var(--sans);font-weight:600;font-size:14px}
+  .game small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--faint);font-weight:400;letter-spacing:.02em}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;font-weight:600;
+    padding:3px 9px;border-radius:999px;font-variant-numeric:tabular-nums}
+  .chip.pos{background:var(--pos-soft);color:var(--pos)}.chip.neg{background:var(--neg-soft);color:var(--neg)}
+  .chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .floor{color:var(--accent);font-weight:600}
+  .proj{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:12px;overflow:hidden;margin-top:4px}
+  @media(max-width:520px){.proj{grid-template-columns:1fr}}
+  .proj .cell{background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:3px}
+  .proj .cell .t{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .proj .cell .n{font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.01em}
+  .proj .cell .n.pos{color:var(--pos)}.proj .cell .n.neg{color:var(--neg)}
+  .proj .cell .sub{font-size:11px;color:var(--muted)}
+  .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap}
+  .seg button{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--muted);background:none;border:none;
+    padding:5px 11px;border-radius:6px;cursor:pointer}
+  .seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .foot{margin-top:30px;font-size:12px;color:var(--faint);max-width:70ch}
+  .foot code{font-family:var(--mono)}
+  .note{font-size:12px;color:var(--muted);margin:14px 0 0;display:flex;gap:8px}
+  .note b{color:var(--accent)}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Crown · модель стоимости</div>
+    <h1>Себестоимость, break-even и флор — по каждому типу игры</h1>
+    <p class="lede">Формулы из <code>cost.md §2</code>, цены из официальных ICP-доков (пег <code>1e12 циклов = 1&nbsp;XDR = $1.36643</code>). Крути параметры — всё пересчитывается. Цены редактируемы: подставь замер cost-gate.</p>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Единичные цены · USD</h2>
+        <div class="stack">
+          <div class="price-row">
+            <span class="lab"><span class="k"><b>g</b> · getTransaction</span><span class="c">впись рождения/сеттлмента</span></span>
+            <input type="number" id="p_g" step="0.00001" min="0" value="0.00542">
+          </div>
+          <div class="price-row">
+            <span class="lab"><span class="k"><b>s</b> · sign_with_schnorr</span><span class="c">key_1 · 34-нод. fiduciary</span></span>
+            <input type="number" id="p_s" step="0.0001" min="0" value="0.03574">
+          </div>
+          <div class="price-row">
+            <span class="lab"><span class="k"><b>v</b> · голос</span><span class="c">update + verify, без дохода</span></span>
+            <input type="number" id="p_v" step="0.00001" min="0" value="0.00002">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Политика</h2>
+        <div class="stack">
+          <div class="ctrl">
+            <div class="row"><label><b>Комиссия</b> f</label><span class="val" id="v_fee">3.0%</span></div>
+            <input type="range" id="fee" min="0.5" max="10" step="0.1" value="3">
+          </div>
+          <div class="ctrl">
+            <div class="row"><label><b>Маржа</b> над break-even</label><span class="val" id="v_margin">25%</span></div>
+            <input type="range" id="margin" min="0" max="100" step="5" value="25">
+            <span class="hint">флор = break-even × (1 + маржа)</span>
+          </div>
+          <div class="ctrl">
+            <div class="row"><label><b>Средний донат</b></label><span class="val" id="v_avg">$5.00</span></div>
+            <input type="range" id="avg" min="0.2" max="50" step="0.2" value="5">
+            <span class="hint">прибыль/шт считается при этой сумме</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Нагрузка области</h2>
+        <div class="stack">
+          <div class="ctrl">
+            <div class="row"><label><b>N</b> · вкладов в области</label><span class="val" id="v_N">10</span></div>
+            <input type="range" id="N" min="1" max="200" step="1" value="10">
+            <span class="hint">Funding/Auction: делит подпись · Subscription: выпуски</span>
+          </div>
+          <div class="ctrl">
+            <div class="row"><label><b>K</b> · клеймов в транзакции</label><span class="val" id="v_K">5</span></div>
+            <input type="range" id="K" min="1" max="30" step="1" value="5">
+            <span class="hint">батч клеймов делит впись сеттлмента</span>
+          </div>
+          <div class="ctrl">
+            <div class="row"><label><b>V</b> · голосов в области</label><span class="val" id="v_V">30</span></div>
+            <input type="range" id="V" min="0" max="2000" step="10" value="30">
+          </div>
+          <div class="ctrl">
+            <div class="row"><label><b>o</b> · оверхед проигравших (Auction)</label><span class="val" id="v_o">0.5</span></div>
+            <input type="range" id="o" min="0" max="3" step="0.1" value="0.5">
+            <span class="hint">рождений проигравших ставок на 1 сеттлмент</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Себестоимость по типу игры</h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Игра</th><th>Себестоим./шт</th><th>Break-even</th><th>Флор</th><th>Прибыль/шт</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <p class="note"><b>NB</b><span>Прямой донат = <span class="num">g</span> (одна впись), платформой не оплачивается — в флор не входит. Жёсткое дно break-even = <span class="num">g / f</span>, ниже которого не спасёт никакая амортизация.</span></p>
+      </div>
+
+      <div class="card">
+        <h2>Проекция по объёму</h2>
+        <div class="stack">
+          <div class="ctrl">
+            <div class="row"><label>Представительный тип игры</label></div>
+            <div class="seg" id="segGame" role="group" aria-label="тип игры для проекции">
+              <button data-g="tasks" aria-pressed="false">Tasks</button>
+              <button data-g="funding" aria-pressed="true">Funding</button>
+              <button data-g="auction" aria-pressed="false">Auction</button>
+              <button data-g="subscription" aria-pressed="false">Subscription</button>
+            </div>
+          </div>
+          <div class="ctrl">
+            <div class="row"><label><b>Игровых сеттлментов</b> в сутки</label><span class="val" id="v_vol">2000</span></div>
+            <input type="range" id="vol" min="10" max="50000" step="10" value="2000">
+          </div>
+          <div class="proj">
+            <div class="cell"><span class="t">Себестоимость / год</span><span class="n num" id="o_cost">—</span><span class="sub" id="o_cost_d">—</span></div>
+            <div class="cell"><span class="t">Доход / год</span><span class="n num" id="o_rev">—</span><span class="sub" id="o_rev_d">—</span></div>
+            <div class="cell"><span class="t">Чистыми / год</span><span class="n num" id="o_net">—</span><span class="sub" id="o_net_x">—</span></div>
+          </div>
+          <span class="hint" style="font-family:var(--mono);font-size:11px;color:var(--faint)">Доход = сеттлменты × комиссия × средний донат. Хранение/вотчер не учтены (десятки $/год).</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Формулы: <code>cost = g + g/K + s/B + v·V/S</code>, <code>break-even = cost/f</code>, <code>флор = break-even·(1+маржа)</code>. Структура фиксирует <code>B,K,S</code> на тип: Tasks <code>B=1,K=1,S=1</code>; Funding/Auction <code>B=N,S=N</code>; Subscription — подпись на выпуск, <code>B=1</code> за выпуск. Цифры — референс июля 2026; финальные значения пиннит cost-gate до заморозки.</p>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var fmt=function(x,d){d=d==null?2:d;return '$'+x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})};
+  var fmtBig=function(x){var a=Math.abs(x);var d=a<100?2:0;return (x<0?'−':'')+'$'+a.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})};
+  var state={};
+  var ids=['p_g','p_s','p_v','fee','margin','avg','N','K','V','o','vol'];
+  var segGame='funding';
+
+  function read(){
+    state.g=+$('p_g').value||0; state.s=+$('p_s').value||0; state.v=+$('p_v').value||0;
+    state.f=(+$('fee').value)/100; state.margin=(+$('margin').value)/100; state.avg=+$('avg').value;
+    state.N=+$('N').value; state.K=+$('K').value; state.V=+$('V').value; state.o=+$('o').value; state.vol=+$('vol').value;
+  }
+
+  // cost per settlement by game type
+  function cost(type){
+    var g=state.g,s=state.s,v=state.v,N=state.N,K=state.K,V=state.V,o=state.o;
+    switch(type){
+      case 'tasks':        return 2*g + s + v*V;                       // B=1,K=1,S=1
+      case 'funding':      return g + g/K + s/N + v*V/N;               // B=N,S=N
+      case 'auction':      return g + g/K + s/N + v*V/N + o*g;         // + losing-bid births
+      case 'subscription': return g + s + g/N;                         // per release, B=1, N=chunks
+    }
+    return 0;
+  }
+  var GAMES=[
+    {id:'tasks',name:'Conditional-Tasks',sub:'1 эскроу · B=1'},
+    {id:'funding',name:'Conditional-Funding',sub:'N вкладов · B=N'},
+    {id:'auction',name:'Auction',sub:'лот · B=N + оверхед'},
+    {id:'subscription',name:'Subscription',sub:'подпись/выпуск'}
+  ];
+
+  function render(){
+    read();
+    $('v_fee').textContent=(state.f*100).toFixed(1)+'%';
+    $('v_margin').textContent=Math.round(state.margin*100)+'%';
+    $('v_avg').textContent=fmt(state.avg);
+    $('v_N').textContent=state.N; $('v_K').textContent=state.K; $('v_V').textContent=state.V;
+    $('v_o').textContent=state.o.toFixed(1); $('v_vol').textContent=state.vol.toLocaleString('en-US');
+
+    var rows='';
+    GAMES.forEach(function(gm){
+      var c=cost(gm.id);
+      var be=state.f>0?c/state.f:Infinity;
+      var floor=be*(1+state.margin);
+      var unit=(gm.id==='subscription')?' /вып.':'';
+      var profit=state.f*state.avg - c;
+      var cls=profit>=0?'pos':'neg';
+      rows+='<tr>'+
+        '<td><span class="game">'+gm.name+'<small>'+gm.sub+'</small></span></td>'+
+        '<td>'+fmt(c,4)+unit+'</td>'+
+        '<td>'+fmt(be,3)+unit+'</td>'+
+        '<td class="floor">'+fmt(floor,3)+unit+'</td>'+
+        '<td><span class="chip '+cls+'"><span class="dot"></span>'+fmtBig(profit)+'</span></td>'+
+        '</tr>';
+    });
+    $('rows').innerHTML=rows;
+
+    // projection
+    var c=cost(segGame);
+    var dailyCost=state.vol*c;
+    var dailyRev=state.vol*state.f*state.avg;
+    var dailyNet=dailyRev-dailyCost;
+    $('o_cost').textContent=fmtBig(dailyCost*365);
+    $('o_cost_d').textContent=fmtBig(dailyCost)+' / день';
+    $('o_rev').textContent=fmtBig(dailyRev*365);
+    $('o_rev_d').textContent=fmtBig(dailyRev)+' / день';
+    var netEl=$('o_net'); netEl.textContent=fmtBig(dailyNet*365);
+    netEl.className='n num '+(dailyNet>=0?'pos':'neg');
+    var xEl=$('o_net_x');
+    if(dailyCost>0){var x=dailyRev/dailyCost; xEl.textContent='покрытие ×'+x.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});}
+    else xEl.textContent='';
+  }
+
+  ids.forEach(function(id){var el=$(id);el.addEventListener('input',render);});
+  var seg=$('segGame');
+  seg.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click',function(){
+      seg.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed','false')});
+      b.setAttribute('aria-pressed','true'); segGame=b.getAttribute('data-g'); render();
+    });
+  });
+  render();
+})();
+</script>
