@@ -219,8 +219,8 @@
 ### D4–D10
 
 - **D4:** `request_signature` — verdict None→NotDecided (без списания); Decided{Settle}→Settle; Decided{Cancel}→Cancel.
-- **D5:** `accept/decline/ready` — recipient (✗NotRecipient); неоматериализован→✗NotFound; `set_profile` — recipient, счётчик строго растёт (✗StaleCounter), `min_reputation≥floor` (✗ProfileMinBelowFloor).
-- **D6:** пруф рождения (сертификат→корень→свидетель; ✗BadBirthProof/FieldMismatch/TaskIdMismatch; без пруфа — ноль записи). Регистрация с гейтами по порядку: Disabled→Floor→ProfileMin→Reputation→Duration→Deadline. Vote пруф веса; репутация гейтится только при `min_reputation>0`.
+- **D5:** `accept/decline/ready` — recipient (✗NotRecipient); неоматериализован→✗NotFound. Ручек получателя (`set_profile`) нет: условия приёма — фильтр клиента, не состояние канистры (`P7.14`).
+- **D6:** пруф рождения (сертификат→корень→свидетель; ✗BadBirthProof/FieldMismatch/TaskIdMismatch; без пруфа — ноль записи). Регистрация с гейтами по порядку: Floor→Duration→Deadline — все платформенные, предпочтений получателя среди них нет. Пруф в регистрации ровно один: репутация доказывается только на `vote`.
 - **D7:** Underpaid / WrongTarget / NotDecided-без-списания / ретрай-иммутабельность (исход пишется до первой подписи).
 - **D8:** Settle → получателю через сплиттер (минус комиссия), репутация донору; Cancel → 100% донору; `refund()` по `deadline`.
 - **D9:** B=1 — одна область/один эскроу, подпись **не** амортизируется.
