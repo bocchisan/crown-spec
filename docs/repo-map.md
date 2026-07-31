@@ -73,8 +73,20 @@ crown-relay ──────────► crown-games/<name>     (Sign-фо�
 ```
 
 Исключения из скелета: `crown-spec` — кода нет, поэтому нет ни `.github/`, ни `docs/spec.md`;
-`crown-games/common` — внутренний крейт под играми, живёт без своего `CLAUDE.md`/`docs/`/CI (его
-проверяет CI каждой игры, которая его тянет).
+`crown-games/common` — внутренний крейт под играми, живёт без своего `CLAUDE.md`/`docs/`.
+
+**`.github/` — только в корне репа, и это не стиль, а условие исполнения.** GitHub Actions читает
+workflow'ы **исключительно** из `<repo>/.github/workflows/`; файл в подкаталоге не запускается вообще и
+при этом выглядит как настроенный CI. `crown-games` — один реп с играми в подкаталогах, поэтому у него
+**один корневой** workflow: job на `common`, матрица по канистерным играм (`conditional-tasks`,
+`conditional-funding`, `auction`) и отдельный job на `subscription` (у него нет канистры — проверяется
+именно её отсутствие). Пер-игровых `<game>/.github/` больше нет; они существовали и не исполнялись.
+
+**Соседние репы в CI чекаутятся явно.** Периметр связан `path`-зависимостями (`crown-indexer` →
+`crown-reduce` + `crown-factory/derive`; игры → `crown-factory` и, для `full_e2e`, живой
+`crown-indexer`), а одиночный чекаут их не разрешает — `cargo` падает на манифесте. Поэтому реп
+чекаутится в **именованный** каталог, а соседи ложатся рядом, как в дереве разработчика
+(`actions/checkout@v4` с `repository:`/`path:`, образец — `crown-factory`).
 
 `build-plan.md` — **центральный** для периметра (`07-build-plan.md`, P0–P8: делаем раз), **свой** у каждой
 игры (`docs/build-plan.md`: игры добавляем часто). `config/{testnet,mainnet}.toml` — в каждом сетевом
@@ -140,7 +152,9 @@ dfx.json · <name>.did · docs/{spec,build-plan}.md
 — только `docs/` + `e2e/` (вся ончейн-логика в форме `stream`, `crown-factory`).
 
 **Мета (`crown-spec`)** — кода нет: `CLAUDE.md`, `docs/`, `tools/` (`cost-model.html` — живой
-калькулятор стоимости, `cost.md §9`).
+калькулятор стоимости, `cost.md §9`). Порядок выхода на mainnet — `09-mainnet-runbook.md`: он живёт
+здесь, пока нет `crown-ops` (`08-deferred.md`), потому что это исполняемая форма `07-build-plan §P8`,
+а не операционный инструмент.
 
 ---
 
