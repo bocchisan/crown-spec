@@ -36,52 +36,59 @@
 
 ## 1. auction (форма two-outcome, область = вклад, N эскроу на лот)
 
-**Состояния:** `Bidding` · `Performing` · `Voting{started_at}` · `Done{winner: Settle|Cancel|None}`.
-**Действия:** `RegisterEntry` `AcceptLot` `ReturnLot{is_winner}` `ReturnEntry{is_winner_lot}` `PickWinner{lot}` `CancelAuction` `Ready` `Vote` `Tick`.
-**Ошибки шага:** `InvalidTransition` `WeightBelowThreshold` `DuplicateVoter` `Overflow`.
-**Ошибки состояния:** `AlreadyExists` `NotFound` `NotRecipient` `LotNotFound` `LotReturned` `LotAlreadyAccepted` `LotNotAccepted` `EntryNotFound` `EntryReturned` `DuplicateEscrow` `VoteCapReached`.
-`T = created_at+duration` (отсечка приёма); `perform_end = T+perform_window`; `voting_end = started_at+voting_period`.
+**Победитель арифметический:** на `T` окно захлопывается само и побеждает **пригодный лот с наибольшей
+суммой живых вкладов**. Голосования и `pick_winner` в игре нет (`LOGIC_VERSION = 2`).
+
+**Состояния:** `Bidding{closes_at}` · `Done{winner_lot: opt lot}`. `closes_at = T` отдаётся наружу:
+`created_at` — слот рождения первого зарегистрировавшегося, поэтому `duration` сам по себе не говорит
+донору, сколько осталось.
+**Действия:** `RegisterEntry` `AcceptLot` `ReturnLot` `ReturnEntry` `CancelAuction` (+ `tick` — чистое
+продвижение часов, не действие).
+**Ошибки шага:** `InvalidTransition` `Overflow`.
+**Ошибки состояния:** `AlreadyExists` `NotFound` `NotRecipient` `LotNotFound` `LotReturned`
+`LotAlreadyAccepted` `EntryNotFound` `EntryReturned` `DuplicateEscrow` `TotalOverflow`.
+`T = created_at+duration` — и отсечка приёма, и момент закрытия: это одна и та же граница.
+
+**Пригодность лота** (кто участвует в максимуме): `accepted_at≠null` ∧ `returned=null` ∧ `total>0`,
+где `total = Σ gross живых вкладов`. Ничья → лоту, открывшемуся раньше (сравнение строгое `>`).
 
 ### D1 — Переходы (состояние × действие)
 
 | Состояние | Действие | Исход |
 |---|---|---|
-| Bidding (now<T) | RegisterEntry | OK (гейты: `gross≥min_entry`, `deadline≥T+pw+vp+margin`, лот не возвращён, эскроу уникален, **пруф рождения**) · ✗GrossBelowMinEntry · ✗DeadlineTooTight · ✗LotReturned · ✗DuplicateEscrow · ✗BadBirthProof/FieldMismatch |
-| Bidding (now≥T) | RegisterEntry | ✗InvalidTransition (реестр заморожен на T) |
-| Bidding (now<T) | AcceptLot | OK (лот есть, не принят, не возвращён, recipient) · ✗LotNotFound · ✗LotAlreadyAccepted · ✗LotReturned · ✗NotRecipient |
-| Bidding (now≥T) | AcceptLot | ✗InvalidTransition |
-| Bidding (now<T) | ReturnLot{false} | OK (лот→returned; recipient) · ✗NotRecipient · ✗LotNotFound · ✗LotReturned |
-| Bidding (now<T) | ReturnEntry | OK (эскроу→returned) · ✗EntryNotFound · ✗EntryReturned |
-| Bidding (любое время) | PickWinner{lot} | OK → **Performing{winner_lot}** (лот принят ∧ не возвращён; recipient) · ✗LotNotAccepted · ✗LotReturned · ✗LotNotFound · ✗NotRecipient |
-| Bidding (любое) | CancelAuction | OK → **Done{None}** (recipient) |
-| Bidding | Ready · Vote | ✗InvalidTransition |
-| Performing | Ready | OK → **Voting{now}** (recipient) |
-| Performing | ReturnLot{true} | OK → **Done{Cancel}** (возврат победителя; recipient) `[редк.]` |
-| Performing | ReturnEntry{is_winner_lot:true} | OK (вернуть один эскроу лота-победителя) `[редк.]` |
-| Performing | ReturnEntry{is_winner_lot:false} | ✗InvalidTransition (лот-проигравший уже cancel) `[редк.]` |
-| Performing | ReturnLot{false} · RegisterEntry · AcceptLot · PickWinner · CancelAuction · Vote | ✗InvalidTransition |
-| Voting | Vote | OK (не дубль ∧ `weight≥MIN_VOTE_WEIGHT` ∧ `len<V_MAX`) · ✗DuplicateVoter · ✗WeightBelowThreshold · ✗VoteCapReached |
-| Voting | всё кроме Vote/Tick | ✗InvalidTransition |
-| Done{любой} | любое действие | ✗InvalidTransition (поглощающее); Tick → no-op |
+| Bidding (now<T) | RegisterEntry | OK (гейты: `gross≥min_entry`, `deadline≥T+margin`, лот не возвращён, эскроу уникален, **пруф рождения**); `gross` идёт в `total` лота · ✗GrossBelowMinEntry · ✗DeadlineTooTight · ✗LotReturned · ✗DuplicateEscrow · ✗BadBirthProof/FieldMismatch · ✗TotalOverflow `[редк.]` |
+| Bidding (now<T) | AcceptLot | OK (лот есть, не принят, не возвращён, recipient) → лот допущен к максимуму · ✗LotNotFound · ✗LotAlreadyAccepted · ✗LotReturned · ✗NotRecipient |
+| Bidding (now<T) | ReturnLot | OK (лот→returned, выбывает из конкурса; recipient) · ✗NotRecipient · ✗LotNotFound · ✗LotReturned |
+| Bidding (now<T) | ReturnEntry | OK (эскроу→returned, его `gross` уходит из `total`) · ✗EntryNotFound · ✗EntryReturned |
+| Bidding (now<T) | CancelAuction | OK → **Done{null}** (recipient) |
+| Bidding (now<T) | повтор уже применённого accept/return | ✗LotAlreadyAccepted · ✗LotReturned · ✗EntryReturned — **на границе**, не в раунде |
+| Bidding, `now≥T` | **любое** | сначала закрытие → `Done{winner_lot=top()}`, затем ✗InvalidTransition |
+| Done{любой} | любое действие | ✗InvalidTransition (поглощающее); `tick` → no-op |
+
+Отдельной строки «PickWinner» и «Vote» больше нет: методов нет на канистре вовсе.
 
 ### D2 — Временны́е границы
 
 | Граница | до | ровно / после |
 |---|---|---|
-| `T` (приём) | RegisterEntry/AcceptLot/ReturnLot/ReturnEntry разрешены | заморожены (✗); PickWinner/CancelAuction **остаются** доступны |
-| `perform_end` (Performing) | Ready ещё работает | → **Done{Cancel}** (таймаут), Ready ✗ |
-| `voting_end` (Voting) | Vote принят (вкл. `voting_end−1`) | → **Done{verdict}**, поздний Vote ✗ (tally первым) |
-| overflow `T`/`perform_end`/`voting_end` | — | ✗Overflow, стейт **не** двигается `[редк.]` |
+| `T` (единственная) | Register/Accept/ReturnLot/ReturnEntry/Cancel разрешены | аукцион **закрыт**: `Done{top()}`, всё ✗ |
+| overflow `T` | — | ✗Overflow, стейт **не** двигается `[редк.]` |
 
-### D3 — Вердикт two-outcome (`verdict(votes)` на Voting→Done)
+Гонка `CancelAuction` с закрытием проигрывает: время применяется первым, и `Done` поглощающее.
 
-| Входы голосов | Исход |
+### D3 — Закрытие (`top()` на Bidding→Done)
+
+| Множество лотов на `T` | winner_lot |
 |---|---|
-| пусто | Cancel |
-| `Σdone == Σnot` (ничья) | Cancel (строго `>`) |
-| `Σdone > Σnot` | **Settle** |
-| `Σdone < Σnot` | Cancel |
-| overflow `Σdone` или `Σnot` | Cancel `[редк.]` |
+| нет пригодных (пусто / все непринятые / все возвращённые / все `total=0`) | **null** (всем Cancel) |
+| один пригодный | он |
+| несколько, максимум единственный | лот с наибольшим `total` |
+| несколько, максимум разделён (ничья) | лот, открывшийся **раньше** (строгое `>`) |
+| аукцион уже отменён (`Done{null}`) | `top()` не вызывается вовсе |
+| закрытие уже случилось | не пересчитывается (`Done` поглощающее) `[редк.]` |
+
+Момент первого касания после `T` на результат не влияет: всё, что двигает `total` или пригодность,
+требует `Bidding`.
 
 ### D4 — Разрешение одного эскроу (`resolve` / `request_signature`)
 
@@ -89,20 +96,20 @@
 |---|---|---|---|
 | returned | — | — | **Cancel** (ступень 1) |
 | live | returned | — | **Cancel** (ступень 2) |
-| live | live | Done{Settle} ∧ is_winner | **Settle** |
-| live | live | Done{Settle} ∧ ¬is_winner | Cancel |
-| live | live | Done{Cancel} / Done{None} | Cancel |
-| live | live | Performing/Voting ∧ is_winner | **NoVerdict** (без списания) |
-| live | live | Performing/Voting ∧ ¬is_winner | Cancel |
-| live | live | Bidding | NoVerdict |
-| unknown | unknown | терминал/проигрыш | Cancel (никогда не победитель) |
+| live | live | Done ∧ is_winner | **Settle** |
+| live | live | Done ∧ ¬is_winner | Cancel |
+| live | live | Done{null} (победителя нет) | Cancel (никто не is_winner) |
+| returned | — | Bidding | **Cancel** — ступени 1–2 не ждут `T` |
+| live | returned | Bidding | **Cancel** — то же |
+| live | live | Bidding | **NoVerdict** (без списания) |
+| unknown | unknown | Done | Cancel (никогда не победитель) |
 | — | — | ретрай того же клейма | тот же вердикт (идемпотентно) `[редк.]` |
 
 ### D5–D7 — Авторизация / пруфы / оплата
 
-- **D5:** `accept/pick/return/cancel/ready` — подписант ≡ recipient (иначе ✗NotRecipient). Vote — подпись кошелька-голосующего. Действие на **неоматериализованном** id → ✗NotFound (самоподписанные не материализуют).
-- **D6:** `register_entry` пруф рождения — валиден→материализация/добавление · невалиден→✗BadBirthProof · поля не сходятся→✗FieldMismatch · **без пруфа→ноль записи**. Vote пруф веса — `≥MIN`→допущен, иначе отбит в `inspect_message` (не доходит до update).
-- **D7:** `request_signature` — `<SIGN_PRICE`→✗Underpaid (ноль работы) · чужой chain→✗WrongTarget · Bidding/NoVerdict→NotDecided (без списания) · оплачен+вердикт→принять оплату **потом** подпись · неизвестный эскроу→EntryNotFound (refund ончейн).
+- **D5:** `accept`/`return_lot`/`return_entry`/`cancel` — подписант ≡ recipient (иначе ✗NotRecipient). Действие на **неоматериализованном** id → ✗NotFound (самоподписанные не материализуют). Состояние граница проверяет одно на все действия (все живут в `Bidding`), а вот **цель** — по действию, и только по монотонному факту: лот уже принят → ✗LotAlreadyAccepted, лот уже возвращён → ✗LotReturned, вклад уже возвращён → ✗EntryReturned. Повтор подписанного действия (нонса в подписи нет) умирает здесь, а не в раунде. Неизвестный лот/вклад граница **не** отбивает — они могут появиться до исполнения.
+- **D6:** `register_entry` пруф рождения — валиден→материализация/добавление · невалиден→✗BadBirthProof · поля не сходятся→✗FieldMismatch · **без пруфа→ноль записи**. Перед всей дорогой деривацией граница читает состояние аукциона и `returned` лота (закрыт → ✗InvalidTransition, лот возвращён → ✗LotReturned): обречённая регистрация оставляет эскроу неизвестным, значит `DuplicateEscrow` её повтор не ловит, и без этой проверки одна валидная заявка была бы вечным бесплатным шаблоном. Пруфа веса нет — голоса нет.
+- **D7:** `request_signature` — `<SIGN_PRICE`→✗Underpaid (ноль работы) · чужой chain→✗WrongTarget · Bidding→NotDecided (без списания) · оплачен+вердикт→принять оплату **потом** подпись · неизвестный эскроу→EntryNotFound (refund ончейн).
 
 ### D8 — Деньги на терминальный исход
 
@@ -114,14 +121,17 @@
 
 ### D9 — N:1 (лот = N эскроу, резолвер per-вклад)
 
-- Одна область (лот) — много эскроу; подпись — **на вклад** (`key([entry_id])`), поэтому исходы расходятся.
-- Победитель, у которого **часть вкладов возвращена**: каждый возвращённый → Cancel (ступень 1), Settle достаётся только не-возвращённым (несозданному эскроу — по деривации). `[редк.]`
-- Эскроу, рождённый **до T**, получает исход своего лота по деривации, даже если добавлен поздно. `[редк.]`
-- «Заявлено» (борд crown-app) **никогда** не влияет на исход — канистра слепа к суммам.
+- Одна конкурсная группа (лот) — много эскроу; подпись — **на вклад** (`key([entry_id])`), поэтому исходы расходятся.
+- Победитель, у которого **часть вкладов возвращена**: каждый возвращённый → Cancel (ступень 1) и в `total` не считается, Settle достаётся только не-возвращённым. `[редк.]`
+- Долив — единственный способ поднять ставку лота: `total` складывается по вкладам, каждый доливший получает свою репутацию.
+- Эскроу, рождённый **до T**, но пруфнутый позже (в окне) — засчитывается и входит в `total`; после `T` — нет. `[редк.]`
+- «Заявлено» (борд crown-app) **никогда** не влияет на исход: в `total` входит только подтверждённое пруфом рождения. Слепа к суммам канистра здесь **не** является — иначе арифметического победителя не посчитать; доверие к `gross` держится на том, что он в соли адреса эскроу, а индекс сверяет `create_escrow` с исполненным `TransferChecked`.
 
 ### D10 — Границы/overflow/кэпы
 
-Включительность границ (D2); `checked_*`→Overflow (не паника); кэп `V_MAX=500` голосов/область; дедуп `(lot,voter)`.
+Включительность границы `T` (D2); `checked_*`→Overflow (не паника); `total` — `checked_add`/`checked_sub`,
+переполнение → ✗TotalOverflow, а не насыщение (насыщенный `total` молча свёл бы максимум к ничьей).
+Кэпов `V_MAX`/дедупа голосов нет — голоса нет.
 
 ---
 
