@@ -4,6 +4,38 @@
 кода/спек не менял. Цель: полный чеклист всех сценариев по 4 играм с текущим статусом покрытия,
 чтобы приоритезировать написание тестов.
 
+> **Поправка 2026-08-02 — закрыт settle-путь обеих MVP-игр.** Этот проход, в отличие от прежних,
+> тесты **добавлял**; блок дописан, снимки ниже не переписаны (та же причина, что у `P7.14`/`P7.18`).
+>
+> **Что было дырой.** Ни один тест не исполнял `accept`/`ready`/`vote` **эндпоинтами** у
+> `conditional-tasks`: юниты зовут `state::` напрямую, `full_e2e` шёл `register → decline`, а живой
+> драйвер `T5` — тоже только `decline`. То есть ветка «работу приняли → деньги ушли получателю» не
+> исполнялась ни в CI, ни на devnet, при том что после переворота умолчания (`LOGIC_VERSION` 5/4) она
+> стала веткой **по умолчанию**. У сбора та же ветка жила только в `F5` — ручном devnet-драйвере,
+> которого в CI нет.
+>
+> **Что добавлено** (всё в PocketIC, без денег и без devnet):
+>
+> - `conditional-tasks/canister/tests/full_e2e.rs::a_weighted_vote_decides_both_verdicts_and_signs_them`
+>   и `conditional-funding/…::a_quorate_vote_decides_a_collection_both_ways` — полный путь
+>   `create/register → accept → ready → vote → окно закрылось → request_signature`, обе игры, **оба**
+>   исхода. Вес голоса — настоящая репутация книги: тест инжектит `Settled` сплиттера через мок SOL RPC,
+>   индекс сворачивает его, `get_reputation` отдаёт свидетеля, и голос проходит `inspect_message`
+>   обходом хеш-дерева. Подпись каждого исхода проверяется против резолвера — тот же счёт, что делает
+>   ончейн-`claim`.
+> - **Две области, а не одна, и это существенно.** С перевёрнутым умолчанием одиночный settle-кейс
+>   вакуумно-зелёный: тишина тоже даёт `settle`, поэтому он прошёл бы и с непрочитанным голосом.
+>   Вторая область голосуется `not_done` тем же голосующим и обязана дать `Cancel`/`Refund`. Проверено
+>   мутацией: подмена ожидаемого исхода красит тест (`got DecidedCancel` / `got DecidedRefund`).
+> - **Граница** (`inspect_message`), обе игры: рез `MAX_ARG_BYTES` — тем же валидным запросом, добитым
+>   неподписанным полем до 9 KiB (непадженный близнец рядом проходит, так что режет именно размер;
+>   мутацией подтверждено); повторный `bootstrap` отбит после взятия ключа; байт-в-байт реплей
+>   обречённого действия (`accept`/`ready`) отбит **по состоянию**; прямой ingress на
+>   `request_signature`/`push_root` отбит; неизвестный метод недопустим.
+>
+> **Что этим не закрыто и не может быть:** движение денег на Solana (это `two-outcome/tests/claim.rs`
+> и живые `T5`/`F5`) и многопровайдерный RPC-консенсус (его нет вне IC mainnet, `07-build-plan §P7.5`).
+
 > **Пересобран 2026-07-29 после `P7.6`** — прогоном, не чтением. §0 ниже несёт числа этого прогона;
 > прежняя редакция открывалась списком «что ниже заведомо неверно» на десять пунктов, и по
 > `01-standards §Документация` такой файл подлежал либо перепрогону, либо удалению. Перепрогнан.
@@ -211,19 +243,19 @@ subscription) получила litesvm-тесты ([lifecycle.rs](crown-factory/
 | Voting × `vote`: валидная запись | ✅ |
 | Voting × `ready`/`recipient_cancel` → InvalidTransition `[редк.]` | ✅ `voting_rejects_ready_and_cancel` |
 | Voting, now≥voting_end: tally→Decided, поздний голос не считается `[редк.]` | ✅ `voting_tally_finalizes_with_quorum` |
-| Voting закрылось пустым → Refund (тишина=refund) `[редк.]` | ✅ `silence_refunds` |
+| Voting закрылось пустым → **Settle** (тишина=выплата получателю) `[редк.]` | ✅ `silence_settles` |
 | Voting нижняя граница (`voting_end−1` голос принят) `[редк.]` | ✅ `a_vote_at_the_last_instant_is_accepted` |
 | Decided поглощающее | ✅ `decided_is_absorbing` |
 | overflow `created_at+duration` → Overflow, state цел `[редк.]` | ✅ `overflow_leaves_state_untouched` |
 | overflow `started_at+voting_period` (Voting) → Overflow `[редк.]` | ✅ `voting_side_overflow_leaves_state_untouched` |
-| вердикт: пусто → refund `[редк.]` | ✅ `empty_is_refund` |
-| вердикт: кворум чуть-не-набран (Q−1)→refund vs набран (Q)→settle `[ред./граница]` | ✅ `undershooting_quorum_is_refund` |
-| вердикт: ничья→refund, +1→settle (строгое `>`) `[редк.]` | ✅ `tie_is_refund_strict_majority_settles` |
+| вердикт: пусто → **settle** `[редк.]` | ✅ `empty_settles` |
+| вердикт: всё-против при кворуме чуть-не-набранном (Q−1)→settle vs набранном (Q)→refund `[ред./граница]` | ✅ `undershooting_quorum_settles` |
+| вердикт: ничья→settle, «против» +1→refund (нестрогое `≥`) `[редк.]` | ✅ `tie_settles_and_a_quorate_no_majority_refunds` |
 | вердикт: повышенный `approval_threshold` (7000) `[редк.]` | ✅ `a_higher_threshold_needs_more` |
 | вердикт: overflow суммы yes/no → refund `[редк.]` | ✅ `overflow_of_a_sum_is_refund` (yes) + `every_counting_overflow_refunds` (no) |
 | вердикт: overflow **явки** (`yes+no`) → refund `[редк.]` | ✅ `every_counting_overflow_refunds` |
 | вердикт: **`checked_mul`** overflow доли/барьера → refund `[редк.]` | ✅ `every_counting_overflow_refunds` (share + bar ветки) |
-| вердикт-property (кворум + строгое большинство) | ✅ proptest `matches_the_rule` (веса ограничены) |
+| вердикт-property (кворум + **нестрогий** порог, refund ⇔ доля ниже барьера) | ✅ proptest `matches_the_rule` (веса ограничены) |
 
 ### 2.2 Канистра (state/validate/protocol/config) — покрыто
 
@@ -283,10 +315,10 @@ slot→created_at линейно+checked ✅ · deploy-инвариант (thres
 | Vote дедуп + вес<MIN → отбит, счёт цел `[редк.]` | ✅ `votes_dedup_and_threshold` |
 | Clock overflow (deadline i64::MIN, cutoff underflow) → Overflow, state цел `[редк.]` | ✅ `time_overflow_leaves_state_untouched` |
 | **`voting_end` overflow** (Voting) → Overflow `[редк.]` | ✅ `voting_end_overflow_leaves_state_untouched` |
-| вердикт: пусто→Cancel; ничья→Cancel; done строго `>` →Settle (501 vs 500) `[редк.]` | ✅ `empty_is_cancel`, `tie_is_cancel`, `strictly_greater_done_settles` |
-| вердикт: только not_done → Cancel | ✅ `only_not_done_is_cancel` |
-| вердикт: overflow done-суммы / not_done-суммы → Cancel `[редк.]` | ✅ обе ветки (`overflow_of_the_done_sum...`, `..._not_done_sum...`) |
-| вердикт-property (settle ⇔ done строго больше) | ✅ proptest `settle_iff_done_strictly_greater` |
+| вердикт: пусто→**Settle**; ничья→**Settle**; not_done строго `>` →Cancel (501 vs 500) `[редк.]` | ✅ `empty_settles`, `tie_settles`, `a_strict_not_done_majority_cancels` |
+| вердикт: только not_done → Cancel; только done → Settle | ✅ `only_not_done_is_cancel`, `only_done_settles` |
+| вердикт: overflow done-суммы / not_done-суммы → Cancel (отказ подсчёта, не вердикт) `[редк.]` | ✅ обе ветки (`overflow_of_the_done_sum...`, `..._not_done_sum...`) |
+| вердикт-property (cancel ⇔ not_done строго больше) | ✅ proptest `cancel_iff_not_done_strictly_greater` |
 
 ### 3.2 Канистра — покрыто
 

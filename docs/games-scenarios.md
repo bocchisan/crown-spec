@@ -164,12 +164,12 @@
 
 | Входы | Исход |
 |---|---|
-| пусто / `turnout(=Σyes+Σno) < quorum_weight` | Refund (тишина/недобор кворума) |
-| `turnout ≥ quorum` ∧ `Σyes·10000 > threshold·turnout` | **Settle** |
-| `turnout ≥ quorum` ∧ `Σyes·10000 ≤ threshold·turnout` (вкл. ничью) | Refund |
-| кворум чуть-не-набран (`Q−1`) vs ровно (`Q`) | Refund vs Settle `[граница]` |
+| пусто / `turnout(=Σyes+Σno) < quorum_weight` | **Settle** (тишина/недобор кворума платят получателю) |
+| `turnout ≥ quorum` ∧ `Σyes·10000 ≥ threshold·turnout` (вкл. ничью) | **Settle** |
+| `turnout ≥ quorum` ∧ `Σyes·10000 < threshold·turnout` | Refund |
+| всё-против, кворум чуть-не-набран (`Q−1`) vs ровно (`Q`) | Settle vs Refund `[граница]` |
 | повышенный `approval_threshold` (напр. 7000) | нужно больше yes `[редк.]` |
-| overflow: `Σyes`/`Σno` add, явка `yes+no`, `yes·10000` (share) mul, `threshold·turnout` (bar) mul | Refund (все ветки) `[редк.]` |
+| overflow: `Σyes`/`Σno` add, явка `yes+no`, `yes·10000` (share) mul, `threshold·turnout` (bar) mul | Refund (все ветки) — отказ подсчёта, а не вердикт `[редк.]` |
 
 ### D4 — Разрешение (`request_signature`)
 
@@ -222,9 +222,9 @@
 
 | Входы | Исход |
 |---|---|
-| пусто / только not_done / ничья `Σdone==Σnot` | Cancel |
-| `Σdone > Σnot` (строго, напр. 501 vs 500) | **Settle** |
-| overflow `Σdone` / `Σnot` | Cancel `[редк.]` |
+| только not_done / `Σnot > Σdone` (строго, напр. 501 vs 500) | Cancel |
+| пусто / ничья `Σdone==Σnot` / `Σdone > Σnot` | **Settle** |
+| overflow `Σdone` / `Σnot` | Cancel — отказ подсчёта, а не вердикт `[редк.]` |
 
 ### D4–D10
 
