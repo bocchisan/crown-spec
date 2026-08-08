@@ -115,7 +115,7 @@
 
 | Исход | Деньги | Комиссия | Репутация | Событие |
 |---|---|---|---|---|
-| **Settle** (победитель) | `gross−fee`→получатель | `fee_bps·gross`→fee_wallet | донору `= gross−fee` | `Settled(payer=escrow)` |
+| **Settle** (победитель) | `gross−fee`→получатель | `fee_bps·gross`→fee_wallet | донору `= gross−fee` | `Settled(donor=escrow)` |
 | **Cancel** | 100% донору | нет | нет | нет |
 | **refund()** (по `deadline`, без подписи) | остаток донору | нет | нет | нет |
 
@@ -182,7 +182,7 @@
 ### D5–D10
 
 - **D5:** `ready`/`recipient_cancel` — recipient (иначе ✗NotRecipient); на неоматериализованном → ✗NotFound.
-- **D6:** пруф рождения первого вклада → материализация `Funding` (иначе ✗CollectionIdMismatch/BadBirthProof/FieldMismatch/CreatedAtOverflow); **без пруфа — эхо `Derived`, ноль записи**. Vote — пруф веса в `inspect_message`.
+- **D6:** пруф рождения первого вклада → материализация `Funding` (иначе ✗CollectionIdMismatch/BadBirthProof/FieldMismatch/CreatedAtOverflow); **пруф обязателен — `create` без свидетеля не допускается границей вовсе** (эхо `Derived` снято на `P8`: ноль записи, но полное реплицируемое исполнение на самоподписанном сообщении). Vote — пруф веса в `inspect_message`.
 - **D7:** `request_signature` — Underpaid / WrongTarget / NotDecided-без-списания / оплата-до-подписи.
 - **D8:** Settle → **всем** эскроу через сплиттер получателю (минус комиссия), репутация каждому донору; Refund → **всем** возврат; `refund()` по `deadline` — ончейн-safety.
 - **D9 (N:1):** одна подпись области (`key([collection_id])`) переиспользуется всеми эскроу — **все** живут одним исходом (в отличие от auction, где per-вклад); добавление эскроу пере-подписи не требует.
@@ -269,7 +269,7 @@
 
 | Действие | Деньги | Комиссия | Репутация | Событие |
 |---|---|---|---|---|
-| **release(k)** | `piece_j=chunk·share_j/10000`, `net_j=piece_j−fee_j` → получателю **через сплиттер**; пыль `chunk−Σpiece`→донору | `Σfee_j`→fee_wallet (одним переводом, мимо сплиттера) | **донору** (`+Σpiece`) | `Settled(payer=escrow)` |
+| **release(k)** | `piece_j=chunk·share_j/10000`, `net_j=piece_j−fee_j` → получателю **через сплиттер**; пыль `chunk−Σpiece`→донору | `Σfee_j`→fee_wallet (одним переводом, мимо сплиттера) | **донору** (`+Σpiece`) | `Settled(donor=escrow)` |
 | **cancel** | весь остаток `(n−released)·chunk`→донору | нет | нет | нет |
 | **refund()** | весь остаток→донору | нет | нет | нет |
 

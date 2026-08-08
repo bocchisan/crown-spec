@@ -12,7 +12,7 @@
 ├─ crown-spec/            мета: закон, стандарты, стоимость, план, карта — кода нет
 ├─ crown-reduce/          крейт: чистая свёртка книги (zero-dep, публичный)
 ├─ crown-splitter/        Solana: программа делителя (immutable)
-├─ crown-factory/         Solana: фабрика+эскроу (3 формы) + крейты derive/salt (immutable)
+├─ crown-factory/         Solana: фабрика+эскроу (2 формы; в mainnet-наборе одна) + крейты derive/salt (immutable)
 ├─ crown-indexer/         канистра ICP: единственный платный индекс (blackhole)
 ├─ crown-relay/           канистра ICP: фронтер оплаченных вызовов (не заморожен)
 └─ crown-games/
@@ -129,6 +129,9 @@ deploy/{testnet,mainnet}.toml    минт USDC, splitter, DOMAIN форм
                                  ic-cdk; build.rs бейкает профиль. Стабильной памяти нет:
                                  всё состояние в heap (`crown-indexer/docs/spec.md §Ёмкость`)
 config/{testnet,mainnet}.toml    per-chain + замораживаемые константы
+                                 (у индекса третий, `cutover.toml`, — только для e2e:
+                                 побайтово `testnet` с включённой границей поколения,
+                                 иначе ветка `AfterCutover` мертва в любой сборке)
 e2e-mock/                        мок-даунстрим для PocketIC-тестов
 dfx.json · <name>.did            .did — единственный не-query (ingest / submit)
 ```
